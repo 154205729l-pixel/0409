@@ -10,17 +10,13 @@
 
   <!-- ====== 开始页 ====== -->
   <div id="page-start" class="page active">
-    <span class="start-badge">懂球帝出品</span>
-    <h1 class="start-title">你是哪种<br>球迷？</h1>
+    <span class="start-badge">懂球帝</span>
+    <h1 class="start-title">球迷MBTI<br>速来测</h1>
     <p class="start-subtitle">22道足球灵魂拷问<br>找到你的球迷人格 & 代表球星</p>
     <div class="start-stats">
       <div class="stat">
-        <div class="stat-num">16</div>
-        <div class="stat-label">球迷类型</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num">22</div>
-        <div class="stat-label">道题目</div>
+        <div class="stat-num">26,299</div>
+        <div class="stat-label">人已完成测试</div>
       </div>
     </div>
     <button id="btn-start" class="btn-start">开始测试</button>
@@ -52,28 +48,59 @@
 
   <!-- ====== 结果页 ====== -->
   <div id="page-result" class="page">
-    <span class="result-badge">你的球迷人格</span>
-    <div id="result-type" class="result-type"></div>
-    <h2 id="result-name" class="result-name"></h2>
-    <div id="result-star" class="result-star"></div>
-    <p id="result-tagline" class="result-tagline"></p>
 
-    <div id="dimension-bars" class="dimension-bars"></div>
-
-    <div id="paywall" class="paywall">
-      <div class="paywall-title">解锁完整球迷人格解读</div>
-      <button id="btn-unlock-video" class="btn-unlock">看15秒视频，免费解锁</button>
-      <button id="btn-unlock-pay" class="btn-unlock-pay">直接解锁 ¥1.9</button>
+    <!-- ① 英雄区 -->
+    <div id="result-hero" class="result-hero">
+      <div class="hero-badge">你的球迷人格</div>
+      <div class="hero-avatar">
+        <img src="img/avatar-default.png" alt="头像" onerror="this.style.display='none'">
+      </div>
+      <div id="result-name" class="hero-name"></div>
+      <div id="result-type" class="hero-type"></div>
+      <div id="result-star" class="hero-star"></div>
+      <p id="result-tagline" class="hero-tagline"></p>
+      <button id="btn-share" class="btn-share">生成卡片分享</button>
     </div>
 
-    <div id="full-result" class="full-result">
-      <div class="full-result-card">
-        <div class="full-result-label">完整解读</div>
+    <!-- ② 维度条区 -->
+    <div class="result-section">
+      <div class="section-title">你的球迷维度</div>
+      <div id="dimension-bars" class="dimension-bars"></div>
+    </div>
+
+    <!-- ③ 免费摘要 -->
+    <div class="result-section">
+      <div class="section-title">球迷画像</div>
+      <p id="result-summary" class="result-summary"></p>
+      <div id="result-stat" class="result-stat"></div>
+    </div>
+
+    <!-- ④ 付费蒙层区 -->
+    <div id="paywall-wrap" class="paywall-wrap">
+      <div class="section-title">完整解析</div>
+      <div class="paywall-content">
         <div id="full-result-text" class="full-result-text"></div>
+        <div id="paywall-mask" class="paywall-mask">
+          <div class="paywall-buttons">
+            <button id="btn-unlock-pay" class="btn-pay">¥1.9 立即解锁</button>
+            <button id="btn-unlock-video" class="btn-video">看激励视频 免费获取完整解析</button>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- ⑤ 底部 -->
     <button id="btn-retry" class="btn-retry">再测一次</button>
+
+    <!-- ⑥ 分享卡片弹窗 -->
+    <div id="share-modal" class="share-modal">
+      <div class="share-modal-inner">
+        <canvas id="share-canvas"></canvas>
+        <button id="btn-save-card" class="btn-save-card">保存图片</button>
+        <button id="btn-close-modal" class="btn-close-modal">关闭</button>
+      </div>
+    </div>
+
   </div>
 
   <script src="js/questions.js"></script>
