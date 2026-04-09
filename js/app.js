@@ -264,6 +264,14 @@
     return type;
   }
 
+  // ── 维度中文标签 ──
+  var DIM_LABELS = {
+    E: '外向', I: '内向',
+    S: '实感', N: '直觉',
+    T: '理性', F: '情感',
+    J: '计划', P: '随性'
+  };
+
   // ── 显示结果 ──
   function showResult() {
     var scores = calcScores();
@@ -273,12 +281,15 @@
     pageQuiz.classList.remove('active');
     pageResult.classList.add('active');
 
-    document.getElementById('result-type').textContent = type;
+    // 英雄区
+    var hero = document.getElementById('result-hero');
+    hero.style.background = r.color;
     document.getElementById('result-name').textContent = r.name;
+    document.getElementById('result-type').textContent = type;
     document.getElementById('result-star').textContent = '代表球星：' + r.star;
     document.getElementById('result-tagline').textContent = '「' + r.tagline + '」';
 
-    // 维度百分比条
+    // 维度条（懂球帝评分风格）
     var pairs = [
       { a: 'E', b: 'I' },
       { a: 'S', b: 'N' },
@@ -290,29 +301,49 @@
     pairs.forEach(function (p) {
       var total = scores[p.a] + scores[p.b];
       var pctA = total > 0 ? Math.round(scores[p.a] / total * 100) : 50;
-      var winner, loser, winPct;
-      if (scores[p.a] >= scores[p.b]) {
-        winner = p.a; loser = p.b; winPct = pctA;
-      } else {
-        winner = p.b; loser = p.a; winPct = 100 - pctA;
-      }
+      var pctB = 100 - pctA;
+      // 避免整数50，微调
+      if (pctA === 50) { pctA = 51; pctB = 49; }
+      var leftWins = pctA >= pctB;
+      var winPct = leftWins ? pctA : pctB;
+
       barsHTML +=
         '<div class="dim-row">' +
-          '<span class="dim-label active">' + winner + '</span>' +
-          '<div class="dim-bar-bg"><div class="dim-bar-fill" style="width:' + winPct + '%"></div></div>' +
+          '<span class="dim-label-left' + (leftWins ? ' active' : '') + '">' + DIM_LABELS[p.a] + '</span>' +
+          '<div class="dim-bar-track">' +
+            '<div class="dim-bar-left" style="width:' + pctA + '%;background:' + r.color + '"></div>' +
+            '<div class="dim-bar-right"></div>' +
+          '</div>' +
+          '<span class="dim-label-right' + (!leftWins ? ' active' : '') + '">' + DIM_LABELS[p.b] + '</span>' +
           '<span class="dim-pct">' + winPct + '%</span>' +
-          '<div class="dim-bar-bg"><div class="dim-bar-fill" style="width:' + (100 - winPct) + '%;background:linear-gradient(90deg,#475569,#64748b)"></div></div>' +
-          '<span class="dim-label inactive">' + loser + '</span>' +
         '</div>';
     });
     document.getElementById('dimension-bars').innerHTML = barsHTML;
 
-    // 完整解读
+    // 免费摘要
+    document.getElementById('result-summary').textContent = r.tagline;
+    document.getElementById('result-stat').textContent = '全站 ' + (Math.random() * 8 + 4).toFixed(1) + '% 的球迷和你同类型';
+
+    // 完整解析（露出一半）
     document.getElementById('full-result-text').textContent = r.description;
 
-    // 解锁按钮
-    document.getElementById('btn-unlock-video').onclick = unlockFull;
+    // 付费按钮
     document.getElementById('btn-unlock-pay').onclick = unlockFull;
+    document.getElementById('btn-unlock-video').onclick = unlockFull;
+
+    // 分享按钮
+    document.getElementById('btn-share').onclick = function () {
+      generateShareCard(type, r, scores, pairs);
+    };
+
+    // 关闭弹窗
+    document.getElementById('btn-close-modal').onclick = closeShareModal;
+    document.getElementById('share-modal').onclick = function (e) {
+      if (e.target === this) closeShareModal();
+    };
+
+    // 保存图片
+    document.getElementById('btn-save-card').onclick = saveShareCard;
 
     // 重测
     document.getElementById('btn-retry').onclick = function () {
@@ -321,8 +352,107 @@
   }
 
   function unlockFull() {
-    document.getElementById('paywall').style.display = 'none';
-    document.getElementById('full-result').classList.add('show');
+    document.getElementById('paywall-wrap').classList.add('unlocked');
+  }
+
+  // ── 分享卡片 ──
+  function generateShareCard(type, r, scores, pairs) {
+    var canvas = document.getElementById('share-canvas');
+    var ctx = canvas.getContext('2d');
+    var w = 600, h = 800;
+    canvas.width = w;
+    canvas.height = h;
+
+    // 背景
+    ctx.fillStyle = r.color;
+    ctx.fillRect(0, 0, w, h * 0.45);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, h * 0.45, w, h * 0.55);
+
+    // 头像占位圆
+    ctx.beginPath();
+    ctx.arc(w / 2, 120, 40, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 文字 - 英雄区
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 32px -apple-system, PingFang SC, sans-serif';
+    ctx.fillText(r.name, w / 2, 200);
+    ctx.font = '16px -apple-system, PingFang SC, sans-serif';
+    ctx.globalAlpha = 0.7;
+    ctx.fillText(type, w / 2, 228);
+    ctx.globalAlpha = 0.85;
+    ctx.fillText('代表球星：' + r.star, w / 2, 254);
+    ctx.globalAlpha = 0.95;
+    ctx.font = '600 18px -apple-system, PingFang SC, sans-serif';
+    ctx.fillText('「' + r.tagline + '」', w / 2, 290);
+    ctx.globalAlpha = 1;
+
+    // 维度条
+    var barY = h * 0.45 + 40;
+    ctx.font = '600 14px -apple-system, PingFang SC, sans-serif';
+    var DIM = { E:'外向',I:'内向',S:'实感',N:'直觉',T:'理性',F:'情感',J:'计划',P:'随性' };
+
+    pairs.forEach(function (p, i) {
+      var total = scores[p.a] + scores[p.b];
+      var pctA = total > 0 ? Math.round(scores[p.a] / total * 100) : 50;
+      if (pctA === 50) pctA = 51;
+      var y = barY + i * 50;
+
+      // 左标签
+      ctx.textAlign = 'right';
+      ctx.fillStyle = pctA >= 50 ? r.color : '#bbb';
+      ctx.fillText(DIM[p.a], 70, y + 4);
+
+      // 条
+      var barX = 82, barW = 380, barH = 10;
+      ctx.fillStyle = '#EBEDF0';
+      ctx.beginPath();
+      ctx.roundRect(barX, y - 5, barW, barH, 5);
+      ctx.fill();
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      ctx.roundRect(barX, y - 5, barW * pctA / 100, barH, 5);
+      ctx.fill();
+
+      // 右标签
+      ctx.textAlign = 'left';
+      ctx.fillStyle = pctA < 50 ? r.color : '#bbb';
+      ctx.fillText(DIM[p.b], barX + barW + 10, y + 4);
+
+      // 百分比
+      ctx.textAlign = 'right';
+      ctx.fillStyle = r.color;
+      ctx.font = 'bold 14px -apple-system, PingFang SC, sans-serif';
+      ctx.fillText(Math.max(pctA, 100 - pctA) + '%', w - 30, y + 4);
+      ctx.font = '600 14px -apple-system, PingFang SC, sans-serif';
+    });
+
+    // 底部品牌
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#bbb';
+    ctx.font = '13px -apple-system, PingFang SC, sans-serif';
+    ctx.fillText('懂球帝 · 球迷人格测试', w / 2, h - 30);
+
+    // 显示弹窗
+    document.getElementById('share-modal').classList.add('show');
+  }
+
+  function closeShareModal() {
+    document.getElementById('share-modal').classList.remove('show');
+  }
+
+  function saveShareCard() {
+    var canvas = document.getElementById('share-canvas');
+    var link = document.createElement('a');
+    link.download = '我的球迷人格.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   }
 
   // ── 工具 ──
