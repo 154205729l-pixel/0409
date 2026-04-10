@@ -34,35 +34,45 @@
   <!-- ====== 结果页 ====== -->
   <div id="page-result" class="page">
 
-    <!-- ① 英雄区 -->
-    <div id="result-hero" class="result-hero">
-      <div class="hero-badge">你的球迷人格</div>
-      <div id="result-code" class="hero-code"></div>
-      <div id="result-name" class="hero-name"></div>
-      <p id="result-tagline" class="hero-tagline"></p>
-      <div class="hero-user-row">
-        <div class="hero-avatar" id="result-avatar"></div>
-        <div class="hero-user-info">
-          <div id="result-nickname" class="hero-nickname"></div>
-          <div id="result-ballage" class="hero-ballage"></div>
+    <!-- ① 英雄区（横排布局） -->
+    <header id="result-hero" class="r-hero">
+      <div class="r-hero-row">
+        <div class="r-avatar" id="result-avatar"></div>
+        <div class="r-hero-main">
+          <p class="r-kicker">我的球迷JBTI人格</p>
+          <h1 class="r-code" id="result-code"></h1>
+          <div class="r-name" id="result-name"></div>
+          <p class="r-tagline" id="result-tagline"></p>
+        </div>
+        <aside class="r-hero-side">
+          <p class="r-side-label">代表球星</p>
+          <p class="r-side-star" id="result-star"></p>
+          <p class="r-side-hint">仅供参考</p>
+        </aside>
+      </div>
+      <div class="r-hero-user" id="result-user-line"></div>
+    </header>
+
+    <!-- ② 画像 + 统计 + 维度条 -->
+    <section class="r-content">
+      <h2 class="r-h2">我的画像</h2>
+      <p class="r-desc" id="result-summary"></p>
+
+      <div class="r-row">
+        <div class="r-stat">
+          <div class="r-stat-small">目前有</div>
+          <div class="r-stat-big" id="result-pct"></div>
+          <div class="r-stat-tail">的人和你一样</div>
+        </div>
+        <div class="r-card">
+          <div class="r-card-title">我的球迷维度</div>
+          <div id="model-bars"></div>
         </div>
       </div>
-      <div id="result-star" class="hero-star-badge"></div>
-      <button id="btn-share" class="btn-share">生成卡片分享</button>
-    </div>
 
-    <!-- ② 5大模型得分 -->
-    <div class="result-section">
-      <div class="section-title">你的球迷维度</div>
-      <div id="model-bars" class="dimension-bars"></div>
-    </div>
-
-    <!-- ③ 免费摘要 -->
-    <div class="result-section">
-      <div class="section-title">球迷画像</div>
-      <p id="result-summary" class="result-summary"></p>
-      <div id="result-stat" class="result-stat"></div>
-    </div>
+      <!-- ③ 分维度解析（付费墙前展示2个，付费后展示全部） -->
+      <div id="result-dimensions"></div>
+    </section>
 
     <!-- ④ 付费蒙层区 -->
     <div id="paywall-wrap" class="paywall-wrap">
@@ -78,8 +88,11 @@
       </div>
     </div>
 
-    <!-- ⑤ 底部（付费墙后） -->
-    <button id="btn-retry" class="btn-retry" style="display:none">再测一次</button>
+    <!-- ⑤ 底部 -->
+    <div class="r-bottom-actions">
+      <button id="btn-share" class="r-btn-share">生成卡片分享</button>
+      <button id="btn-retry" class="btn-retry" style="display:none">再测一次</button>
+    </div>
 
     <!-- ⑥ 分享卡片弹窗 -->
     <div id="share-modal" class="share-modal">
