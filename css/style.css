@@ -301,136 +301,251 @@ html, body {
 /* ========== 结果页 ========== */
 #page-result {
   padding: 0;
-  background: #f5f5f5;
+  background: #ffffff;
 }
 
-/* ── 英雄区 ── */
-.result-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 48px 24px 32px;
-  border-radius: 0 0 24px 24px;
+/* ── 英雄区（横排布局，对标 result-page.html） ── */
+.r-hero {
+  background: #083f63;
   color: #fff;
-  position: relative;
+  padding: 18px 16px 14px;
 }
 
-.hero-badge {
-  display: inline-block;
-  background: rgba(255,255,255,0.2);
+.r-hero-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.r-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+.r-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.r-hero-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.r-kicker {
   font-size: 12px;
-  padding: 4px 14px;
-  border-radius: 20px;
-  margin-bottom: 24px;
-  letter-spacing: 1px;
-}
-
-/* 梗字母 — 视觉中心 */
-.hero-code {
-  font-size: 56px;
-  font-weight: 900;
-  letter-spacing: 4px;
-  line-height: 1.1;
-  margin-bottom: 8px;
-}
-
-/* 人格名 */
-.hero-name {
-  font-size: 18px;
-  font-weight: 600;
   opacity: 0.9;
-  letter-spacing: 2px;
+  margin: 0 0 6px;
+}
+
+.r-code {
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-weight: 800;
+  margin: 0;
+}
+
+.r-name {
+  font-size: 13px;
+  opacity: 0.95;
+  margin: 6px 0;
+  font-weight: 600;
+}
+
+.r-tagline {
+  font-size: 12px;
+  opacity: 0.85;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 右侧球星卡片 */
+.r-hero-side {
+  width: 96px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.r-side-label {
+  font-size: 12px;
+  opacity: 0.9;
+  margin: 0 0 10px;
+}
+
+.r-side-star {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1;
+}
+
+.r-side-hint {
+  font-size: 12px;
+  opacity: 0.85;
+  margin: 8px 0 0;
+}
+
+.r-hero-user {
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* ── 内容区 ── */
+.r-content {
+  padding: 18px 18px 24px;
+}
+
+.r-h2 {
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+  margin: 0 0 10px;
+  color: #111827;
+}
+
+.r-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.75;
+  color: #374151;
+}
+
+/* 统计 + 维度条横排 */
+.r-row {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.r-stat {
+  text-align: left;
+  padding-left: 2px;
+}
+
+.r-stat-small {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.r-stat-big {
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 900;
+  color: #f59e0b;
+  margin: 0 0 6px;
+}
+
+.r-stat-tail {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* 维度卡片 */
+.r-card {
+  background: #f3f4f6;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.r-card-title {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 10px;
+}
+
+/* 维度条（复用参考设计风格） */
+.r-bar {
+  display: grid;
+  grid-template-columns: 70px 1fr 44px;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.r-bar-label {
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 800;
+}
+
+.r-bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.r-bar-fill {
+  height: 100%;
+  background: #f59e0b;
+}
+
+.r-bar-pct {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* 分维度解析 section */
+.r-dim-section {
+  margin-top: 16px;
+}
+
+.r-dim-title {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 900;
+  color: #111827;
+  margin: 14px 0 8px;
+}
+
+.r-dim-body {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #374151;
+}
+
+/* 底部操作区 */
+.r-bottom-actions {
+  text-align: center;
+  padding: 20px 18px 48px;
+}
+
+.r-btn-share {
+  width: 100%;
+  padding: 14px 0;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background: #083f63;
+  cursor: pointer;
   margin-bottom: 12px;
 }
-
-/* tagline */
-.hero-tagline {
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.6;
-  max-width: 280px;
+.r-btn-share:active {
   opacity: 0.85;
-  margin-bottom: 24px;
 }
 
-/* 用户信息行 */
-.hero-user-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  background: rgba(255,255,255,0.12);
-  padding: 10px 20px;
-  border-radius: 28px;
-}
-
-.hero-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.5);
-  background: rgba(255,255,255,0.1);
-  overflow: hidden;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hero-user-info {
-  text-align: left;
-}
-
-.hero-nickname {
-  font-size: 14px;
-  font-weight: 600;
-  opacity: 0.95;
-  line-height: 1.3;
-}
-
-.hero-ballage {
-  font-size: 12px;
-  opacity: 0.6;
-  line-height: 1.3;
-}
-
-/* 代表球星标签 */
-.hero-star-badge {
-  display: inline-block;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.3);
-  font-size: 13px;
-  padding: 6px 16px;
-  border-radius: 20px;
-  margin-bottom: 24px;
-  opacity: 0.9;
-}
-
-.btn-share {
-  padding: 10px 28px;
-  border: 1.5px solid rgba(255,255,255,0.5);
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  background: rgba(255,255,255,0.15);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.btn-share:active {
-  background: rgba(255,255,255,0.3);
-}
-
-/* ── 通用 section ── */
-.result-section {
-  background: #fff;
-  border-radius: 16px;
-  margin: 16px 16px 0;
-  padding: 20px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-}
-
+/* ── 付费蒙层区 ── */
 .section-title {
   font-size: 14px;
   font-weight: 700;
@@ -438,79 +553,6 @@ html, body {
   margin-bottom: 16px;
 }
 
-/* ── 维度条（懂球帝评分风格） ── */
-.dimension-bars {
-  width: 100%;
-}
-
-.dim-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-  gap: 8px;
-}
-.dim-row:last-child { margin-bottom: 0; }
-
-.dim-label-left,
-.dim-label-right {
-  font-size: 12px;
-  font-weight: 600;
-  width: 32px;
-  flex-shrink: 0;
-}
-.dim-label-left { text-align: right; }
-.dim-label-right { text-align: left; }
-.dim-label-left.active { color: #30B544; }
-.dim-label-right.active { color: #30B544; }
-.dim-label-left:not(.active) { color: #bbb; }
-.dim-label-right:not(.active) { color: #bbb; }
-
-.dim-bar-track {
-  flex: 1;
-  height: 8px;
-  background: #EBEDF0;
-  border-radius: 4px;
-  overflow: hidden;
-  position: relative;
-  display: flex;
-}
-
-.dim-bar-left {
-  height: 100%;
-  border-radius: 4px 0 0 4px;
-  transition: width 0.8s ease;
-}
-.dim-bar-right {
-  height: 100%;
-  background: #EBEDF0;
-  flex: 1;
-}
-
-.dim-pct {
-  font-size: 12px;
-  font-weight: 700;
-  color: #30B544;
-  width: 36px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-/* ── 免费摘要 ── */
-.result-summary {
-  font-size: 15px;
-  line-height: 1.7;
-  color: #333;
-  margin-bottom: 12px;
-}
-
-.result-stat {
-  font-size: 13px;
-  color: #999;
-  padding: 8px 0 0;
-  border-top: 1px solid #f0f0f0;
-}
-
-/* ── 付费蒙层区 ── */
 .paywall-wrap {
   margin: 16px 16px 0;
   background: #fff;
