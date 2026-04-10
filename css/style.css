@@ -19,60 +19,7 @@ html, body {
 }
 .page.active { display: flex; flex-direction: column; }
 
-/* ========== 开始页 ========== */
-#page-start {
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 40px 24px;
-}
-
-.start-badge {
-  display: inline-block;
-  background: rgba(48, 181, 68, 0.12);
-  color: #30B544;
-  font-size: 13px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  margin-bottom: 24px;
-  letter-spacing: 1px;
-}
-
-.start-title {
-  font-size: 32px;
-  font-weight: 800;
-  line-height: 1.3;
-  margin-bottom: 12px;
-  color: #1a1a1a;
-}
-
-.start-subtitle {
-  font-size: 15px;
-  color: #888;
-  line-height: 1.6;
-  margin-bottom: 40px;
-  max-width: 300px;
-}
-
-.start-stats {
-  display: flex;
-  gap: 32px;
-  margin-bottom: 48px;
-}
-.start-stats .stat {
-  text-align: center;
-}
-.start-stats .stat-num {
-  font-size: 28px;
-  font-weight: 700;
-  color: #30B544;
-}
-.start-stats .stat-label {
-  font-size: 12px;
-  color: #999;
-  margin-top: 4px;
-}
-
+/* ========== btn-start 通用（用户信息页复用） ========== */
 .btn-start {
   width: 100%;
   max-width: 300px;
@@ -91,10 +38,9 @@ html, body {
   transform: scale(0.97);
 }
 
-.start-footer {
-  margin-top: 24px;
-  font-size: 12px;
-  color: #bbb;
+/* ========== 球龄填空输入框 ========== */
+.ballage-input {
+  cursor: text;
 }
 
 /* ========== 答题页 ========== */
@@ -163,8 +109,14 @@ html, body {
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 16px;
-  transition: box-shadow 0.3s;
+  transition: box-shadow 0.3s, opacity 0.35s ease, filter 0.35s ease;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* 非聚焦卡片变淡 */
+.question-card.dimmed {
+  opacity: 0.35;
+  filter: grayscale(0.3);
 }
 .question-card.answered {
   box-shadow: 0 1px 4px rgba(48, 181, 68, 0.15);
@@ -370,51 +322,89 @@ html, body {
   font-size: 12px;
   padding: 4px 14px;
   border-radius: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   letter-spacing: 1px;
 }
 
-.hero-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: 3px solid rgba(255,255,255,0.6);
-  background: rgba(255,255,255,0.15);
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-.hero-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.hero-name {
-  font-size: 28px;
-  font-weight: 800;
-  margin-bottom: 4px;
-}
-
-.hero-type {
-  font-size: 13px;
-  opacity: 0.7;
-  letter-spacing: 2px;
+/* 梗字母 — 视觉中心 */
+.hero-code {
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  line-height: 1.1;
   margin-bottom: 8px;
 }
 
-.hero-star {
-  font-size: 14px;
-  opacity: 0.85;
-  margin-bottom: 16px;
+/* 人格名 */
+.hero-name {
+  font-size: 18px;
+  font-weight: 600;
+  opacity: 0.9;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
 }
 
+/* tagline */
 .hero-tagline {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.5;
-  max-width: 300px;
-  opacity: 0.95;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.6;
+  max-width: 280px;
+  opacity: 0.85;
   margin-bottom: 24px;
+}
+
+/* 用户信息行 */
+.hero-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  background: rgba(255,255,255,0.12);
+  padding: 10px 20px;
+  border-radius: 28px;
+}
+
+.hero-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-user-info {
+  text-align: left;
+}
+
+.hero-nickname {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.95;
+  line-height: 1.3;
+}
+
+.hero-ballage {
+  font-size: 12px;
+  opacity: 0.6;
+  line-height: 1.3;
+}
+
+/* 代表球星标签 */
+.hero-star-badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 24px;
+  opacity: 0.9;
 }
 
 .btn-share {
@@ -652,6 +642,48 @@ html, body {
   font-size: 14px;
   color: #999;
   cursor: pointer;
+}
+
+/* ========== Intro 卡片 ========== */
+.intro-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 20px;
+  margin-bottom: 16px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.intro-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+.intro-subtitle {
+  font-size: 14px;
+  color: #999;
+  line-height: 1.6;
+}
+
+/* ========== 付费区子维度详情 ========== */
+.full-dim-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.full-dim-item:last-child {
+  border-bottom: none;
+}
+.full-dim-name {
+  font-size: 14px;
+  color: #666;
+}
+.full-dim-level {
+  font-size: 14px;
+  font-weight: 600;
+  color: #30B544;
 }
 
 /* ========== 动画 ========== */
