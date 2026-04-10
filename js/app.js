@@ -104,7 +104,7 @@
       intro.className = 'intro-card';
       intro.innerHTML =
         '<div class="intro-title">JBTI</div>' +
-        '<div class="intro-subtitle">30道题测球感·找到和你契合的球星</div>';
+        '<div class="intro-subtitle">速测球感，找到和你契合的球星</div>';
       container.appendChild(intro);
     }
 
@@ -119,7 +119,7 @@
 
       var html = '';
       html += '<div class="q-header">';
-      html += '  <div class="q-avatar"><img src="design/头像.png" alt="" onerror="this.style.display=\'none\'"></div>';
+      html += '  <div class="q-avatar"><img src="design/avatar_80.png" alt="" onerror="this.style.display=\'none\'"></div>';
       html += '  <div class="q-header-info">';
       html += '    <div class="q-title">' + escapeHtml(q.tag || '') + '</div>';
       html += '    <div class="q-time">刚刚</div>';
@@ -197,35 +197,42 @@
     window.scrollTo(0, 0);
     pageResult.scrollTop = 0;
 
-    // 英雄区背景色
+    // 英雄区背景色（使用人格配色）
     var hero = document.getElementById('result-hero');
-    hero.style.background = 'linear-gradient(135deg, ' + r.color + ', ' + adjustColor(r.color, -30) + ')';
+    hero.style.background = r.color;
 
-    // 用户信息（兜底）
-    var nick = userInfo.nickname || '球迷';
-    var avatar = userInfo.avatar || '⚽';
-    document.getElementById('result-avatar').innerHTML = '<span style="font-size:24px;line-height:40px">' + avatar + '</span>';
-    document.getElementById('result-nickname').textContent = nick;
-    document.getElementById('result-ballage').textContent = userInfo.ballAge ? '球龄：' + userInfo.ballAge : '';
+    // 头像（占位灰圈，后续替换为真实头像）
+    document.getElementById('result-avatar').innerHTML = '';
 
     // 人格信息
     document.getElementById('result-code').textContent = r.code;
     document.getElementById('result-name').textContent = r.name;
-    document.getElementById('result-star').textContent = '代表球星：' + r.star;
-    document.getElementById('result-tagline').textContent = '「' + r.tagline + '」';
+    document.getElementById('result-star').textContent = r.star;
+    document.getElementById('result-tagline').textContent = r.tagline;
 
-    // 5大模型得分条
+    // 用户信息行
+    var nick = userInfo.nickname || '球迷';
+    var ballAge = userInfo.ballAge || '资深球迷';
+    document.getElementById('result-user-line').textContent = nick + ' | 懂球帝' + ballAge;
+
+    // 画像描述
+    document.getElementById('result-summary').textContent = r.description;
+
+    // 虚拟统计百分比
+    var fakePct = Math.floor(Math.random() * 20) + 15; // 15%-34%
+    document.getElementById('result-pct').textContent = fakePct + '%';
+
+    // 5大维度条（新样式）
     renderModelBars(data.modelScores);
 
-    // 免费摘要
-    document.getElementById('result-summary').textContent = r.description;
-    document.getElementById('result-stat').textContent = '匹配度 ' + data.similarity + '% · 相似人格 Top' + data.topMatches.length;
+    // 维度解析（免费展示前2个模型的解析，虚拟文案）
+    renderDimensionSections(data);
 
     // 付费区
     renderFullResult(data);
   }
 
-  // ── 5大模型得分条 ──
+  // ── 5大维度条（参考设计风格） ──
   function renderModelBars(modelScores) {
     var wrap = document.getElementById('model-bars');
     wrap.innerHTML = '';
@@ -233,18 +240,38 @@
       var m = MODELS[k];
       var pct = modelScores[k].pct;
       var row = document.createElement('div');
-      row.className = 'dim-row';
+      row.className = 'r-bar';
       row.innerHTML =
-        '<div class="dim-label-left' + (pct >= 50 ? ' active' : '') + '">' + m.label + '</div>' +
-        '<div class="dim-bar-track"><div class="dim-bar-left" style="width:' + pct + '%;background:' + getModelColor(k) + '"></div><div class="dim-bar-right"></div></div>' +
-        '<div class="dim-pct">' + pct + '%</div>';
+        '<div class="r-bar-label">' + m.label + '</div>' +
+        '<div class="r-bar-track"><div class="r-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="r-bar-pct">' + pct + '%</div>';
       wrap.appendChild(row);
     });
   }
 
-  function getModelColor(key) {
-    var colors = { S: '#30B544', E: '#E53935', A: '#1E88E5', D: '#FB8C00', C: '#8E24AA' };
-    return colors[key] || '#30B544';
+  // ── 维度解析（虚拟数据，前2个免费可见） ──
+  function renderDimensionSections(data) {
+    var wrap = document.getElementById('result-dimensions');
+    wrap.innerHTML = '';
+
+    // 取前2个模型做免费解析
+    var freeKeys = PAGE_KEYS.slice(0, 2);
+    freeKeys.forEach(function (k) {
+      var m = MODELS[k];
+      var pct = data.modelScores[k].pct;
+      var section = document.createElement('div');
+      section.className = 'r-dim-section';
+
+      // 根据得分生成解析文案
+      var level = pct >= 70 ? '偏高' : (pct <= 30 ? '偏低' : '中等');
+      var desc = '你在「' + m.name + '」维度的得分为 ' + pct + '%，属于' + level + '水平。';
+      desc += '这意味着在' + m.name + '方面，你有着自己鲜明的特点。';
+
+      section.innerHTML =
+        '<div class="r-dim-title">' + m.name + '解析</div>' +
+        '<div class="r-dim-body">' + desc + '</div>';
+      wrap.appendChild(section);
+    });
   }
 
   // ── 付费区：15维详细解读 ──
