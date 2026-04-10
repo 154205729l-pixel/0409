@@ -1,465 +1,434 @@
 /**
- * 球迷人格测试 — 主逻辑（按维度分页版）
+ * 球迷人格测试 2.0 — 主逻辑
+ * 流程：答题(5个维度页, 共31题) → 结果页
  */
 
 (function () {
 
-  // ── 维度分页 ──
-  var PAGES = [
-    { key: "EI", label: "社交属性：外向 vs 内向", questions: [0,1,2,3,4,5] },
-    { key: "SN", label: "认知方式：数据实感 vs 直觉灵感", questions: [6,7,8,9,10] },
-    { key: "TF", label: "决策风格：理性思考 vs 情感驱动", questions: [11,12,13,14,15,16] },
-    { key: "JP", label: "生活方式：计划控 vs 随性派", questions: [17,18,19,20,21] },
-    { key: "cross", label: "综合判断", questions: [22,23] }
-  ];
-
-  var TOTAL_QUESTIONS = QUESTIONS.length;  // 24
-
+  var TOTAL = QUESTIONS.length; // 31
+  var PAGE_KEYS = ['S', 'E', 'A', 'D', 'C'];
   var currentPage = 0;
-  var selections = {};  // { questionIndex: selectedValue 或 selectedValues }
+  var selections = {}; // { questionIndex: selectedOptionIndex }
+  var userInfo = { nickname: '', avatar: '⚽', ballAge: '' };
 
-  // ── DOM ──
-  var pageStart   = document.getElementById('page-start');
-  var pageQuiz    = document.getElementById('page-quiz');
-  var pageResult  = document.getElementById('page-result');
-  var dimLabel    = document.getElementById('quiz-dim-label');
-  var pageNum     = document.getElementById('quiz-page-num');
-  var progressFill = document.getElementById('progress-fill');
-  var container   = document.getElementById('quiz-container');
-  var btnNext     = document.getElementById('btn-next');
-  var btnPrev     = document.getElementById('btn-prev');
-  var toastEl     = document.getElementById('toast');
-
-  // ── 开始测试 ──
-  document.getElementById('btn-start').addEventListener('click', function () {
-    pageStart.classList.remove('active');
-    pageQuiz.classList.add('active');
-    renderPage(0);
+  // ── 按维度分组题目 ──
+  var PAGE_QUESTIONS = {};
+  PAGE_KEYS.forEach(function (k) { PAGE_QUESTIONS[k] = []; });
+  QUESTIONS.forEach(function (q, i) {
+    var key = q.dimension.charAt(0);
+    if (key === 'b') key = 'C'; // ballAge 归入 C 页
+    if (PAGE_QUESTIONS[key]) {
+      PAGE_QUESTIONS[key].push({ question: q, index: i });
+    }
   });
 
-  // ── 下一页按钮 ──
-  btnNext.addEventListener('click', handleNext);
+  // ── DOM ──
+  var pageQuiz     = document.getElementById('page-quiz');
+  var pageResult   = document.getElementById('page-result');
+  var progressText = document.getElementById('quiz-progress-text');
+  var progressFill = document.getElementById('progress-fill');
+  var dimLabel     = document.querySelector('.quiz-dim-label');
+  var container    = document.getElementById('quiz-container');
+  var btnNext      = document.getElementById('btn-next');
+  var btnPrev      = document.getElementById('btn-prev');
+  var toastEl      = document.getElementById('toast');
 
-  // ── 上一页按钮 ──
+  // ── 初始化 ──
+  renderPage(0);
+
+  // ── 下一页 ──
+  btnNext.addEventListener('click', function () {
+    // 收集球龄
+    var ballageInput = container.querySelector('.ballage-input');
+    if (ballageInput && ballageInput.value.trim()) {
+      userInfo.ballAge = ballageInput.value.trim();
+    }
+
+    // 校验当前页所有计分题是否选完
+    var pageQs = PAGE_QUESTIONS[PAGE_KEYS[currentPage]];
+    for (var i = 0; i < pageQs.length; i++) {
+      var item = pageQs[i];
+      if (item.question.type === 'text') continue;
+      if (selections[item.index] === undefined) {
+        showToast('还有题没选完');
+        // 滚到未选题
+        var card = container.querySelector('[data-qi="' + item.index + '"]');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
+
+    if (currentPage < 4) {
+      renderPage(currentPage + 1);
+    } else {
+      showResult();
+    }
+  });
+
+  // ── 上一页 ──
   btnPrev.addEventListener('click', function () {
+    // 保存球龄
+    var ballageInput = container.querySelector('.ballage-input');
+    if (ballageInput && ballageInput.value.trim()) {
+      userInfo.ballAge = ballageInput.value.trim();
+    }
     if (currentPage > 0) {
       renderPage(currentPage - 1);
     }
   });
 
   // ── 渲染维度页 ──
-  function renderPage(pageIndex) {
-    currentPage = pageIndex;
-    var pg = PAGES[pageIndex];
+  function renderPage(pageIdx) {
+    currentPage = pageIdx;
+    var key = PAGE_KEYS[pageIdx];
+    var model = MODELS[key];
+    var pageQs = PAGE_QUESTIONS[key];
 
-    // 顶部信息
-    dimLabel.textContent = pg.label;
-    pageNum.textContent = (pageIndex + 1) + ' / ' + PAGES.length;
-    updateProgress();
+    // 进度（以题目为单位）
+    var answered = Object.keys(selections).length;
+    dimLabel.textContent = model.name;
+    progressText.textContent = answered + ' / ' + TOTAL;
+    progressFill.style.width = (answered / TOTAL * 100) + '%';
 
-    // 按钮文案
-    btnNext.textContent = (pageIndex === PAGES.length - 1) ? '查看结果' : '下一页';
+    // 按钮
+    btnNext.textContent = (pageIdx === 4) ? '查看结果' : '下一页';
+    btnPrev.style.display = (pageIdx === 0) ? 'none' : '';
 
-    // 第一页隐藏上一页按钮
-    btnPrev.style.display = (pageIndex === 0) ? 'none' : '';
-
-    // 生成题目卡片
+    // 清空
     container.innerHTML = '';
     container.scrollTop = 0;
 
-    pg.questions.forEach(function (qIdx, i) {
-      var q = QUESTIONS[qIdx];
+    // intro 卡片（仅第一页）
+    if (pageIdx === 0) {
+      var intro = document.createElement('div');
+      intro.className = 'intro-card';
+      intro.innerHTML =
+        '<div class="intro-title">JBTI</div>' +
+        '<div class="intro-subtitle">30道题测球感·找到和你契合的球星</div>';
+      container.appendChild(intro);
+    }
+
+    // 渲染该维度所有题目
+    pageQs.forEach(function (item) {
+      var q = item.question;
+      var idx = item.index;
+
       var card = document.createElement('div');
       card.className = 'question-card';
-      card.id = 'qcard-' + qIdx;
-
-      // 如果已有选择，标记 answered
-      if (selections[qIdx] !== undefined) {
-        card.classList.add('answered');
-      }
+      card.setAttribute('data-qi', idx);
 
       var html = '';
-      // 帖子头部：头像 + 标题 + 时间
       html += '<div class="q-header">';
-      html += '  <div class="q-avatar"><img src="img/avatar-default.png" alt="" onerror="this.style.display=\'none\'"></div>';
+      html += '  <div class="q-avatar"><img src="design/头像.png" alt="" onerror="this.style.display=\'none\'"></div>';
       html += '  <div class="q-header-info">';
-      html += '    <div class="q-title">' + escapeHtml(q.title) + '</div>';
+      html += '    <div class="q-title">' + escapeHtml(q.tag || '') + '</div>';
       html += '    <div class="q-time">刚刚</div>';
       html += '  </div>';
       html += '</div>';
-      // 帖子正文
-      html += '<div class="q-text">' + escapeHtml(q.question) + '</div>';
-      // 分隔引导
-      html += '<div class="q-divider">';
-      html += '  <div class="q-divider-bar"></div>';
-      html += '  <div class="q-divider-text">你会选择：</div>';
-      html += '</div>';
-      html += '<div class="q-options">';
+      html += '<div class="q-text">' + escapeHtml(q.text) + '</div>';
 
-      if (q.dimension === 'cross') {
-        // 交叉题：4选项
-        q.options.forEach(function (opt, optIndex) {
-          var sel = (selections[qIdx] === optIndex) ? ' selected' : '';
-          html += '<button class="option-btn' + sel + '" data-qidx="' + qIdx + '" data-opt-index="' + optIndex + '">' + escapeHtml(opt.text) + '</button>';
-        });
+      if (q.type === 'text') {
+        var val = userInfo.ballAge || '';
+        html += '<div class="q-options">';
+        html += '<input type="text" class="ballage-input option-btn" placeholder="随便写，比如：三年老球迷" maxlength="' + (q.maxLength || 20) + '" value="' + escapeHtml(val) + '">';
+        html += '</div>';
       } else {
-        // 常规题：2选项
-        var selA = (selections[qIdx] === 'A') ? ' selected' : '';
-        var selB = (selections[qIdx] === 'B') ? ' selected' : '';
-        html += '<button class="option-btn' + selA + '" data-qidx="' + qIdx + '" data-choice="A">' + escapeHtml(q.optionA.text) + '</button>';
-        html += '<button class="option-btn' + selB + '" data-qidx="' + qIdx + '" data-choice="B">' + escapeHtml(q.optionB.text) + '</button>';
+        html += '<div class="q-divider">';
+        html += '  <div class="q-divider-bar"></div>';
+        html += '  <div class="q-divider-text">你会选择：</div>';
+        html += '</div>';
+        html += '<div class="q-options">';
+        q.options.forEach(function (opt, optIdx) {
+          var sel = (selections[idx] === optIdx) ? ' selected' : '';
+          html += '<button class="option-btn' + sel + '" data-opt="' + optIdx + '" data-qi="' + idx + '">' + escapeHtml(opt.text) + '</button>';
+        });
+        html += '</div>';
       }
 
-      html += '</div>';
       card.innerHTML = html;
       container.appendChild(card);
     });
 
-    // 事件代理：选项点击
+    // 选项点击（事件委托）
     container.onclick = function (e) {
       var btn = e.target.closest('.option-btn');
-      if (!btn) return;
+      if (!btn || btn.classList.contains('ballage-input')) return;
+      var optIdx = parseInt(btn.getAttribute('data-opt'));
+      var qIdx = parseInt(btn.getAttribute('data-qi'));
+      selections[qIdx] = optIdx;
 
-      var qIdx = parseInt(btn.getAttribute('data-qidx'));
-      var q = QUESTIONS[qIdx];
+      // 更新同题选中状态
+      var card = btn.closest('.question-card');
+      card.querySelectorAll('.option-btn').forEach(function (b) {
+        b.classList.toggle('selected', parseInt(b.getAttribute('data-opt')) === optIdx);
+      });
+      card.classList.add('answered');
 
-      if (q.dimension === 'cross') {
-        var optIndex = parseInt(btn.getAttribute('data-opt-index'));
-        selectOption(qIdx, optIndex);
-      } else {
-        var choice = btn.getAttribute('data-choice');
-        selectOption(qIdx, choice);
-      }
+      // 更新进度条
+      var answered = Object.keys(selections).length;
+      progressText.textContent = answered + ' / ' + TOTAL;
+      progressFill.style.width = (answered / TOTAL * 100) + '%';
+
+      // 自动滚到当前页下一道未答题
+      setTimeout(function () {
+        var pageQs = PAGE_QUESTIONS[PAGE_KEYS[currentPage]];
+        for (var j = 0; j < pageQs.length; j++) {
+          var it = pageQs[j];
+          if (it.question.type === 'text') continue;
+          if (selections[it.index] === undefined) {
+            var nextCard = container.querySelector('[data-qi="' + it.index + '"]');
+            if (nextCard) nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+          }
+        }
+      }, 300);
     };
   }
 
-  // ── 选择/切换选项 ──
-  function selectOption(qIdx, value) {
-    var isNewAnswer = (selections[qIdx] === undefined);
-    selections[qIdx] = value;
-
-    // 更新按钮状态
-    var card = document.getElementById('qcard-' + qIdx);
-    card.classList.add('answered');
-    var btns = card.querySelectorAll('.option-btn');
-
-    var q = QUESTIONS[qIdx];
-    if (q.dimension === 'cross') {
-      btns.forEach(function (b) {
-        var idx = parseInt(b.getAttribute('data-opt-index'));
-        b.classList.toggle('selected', idx === value);
-      });
-    } else {
-      btns.forEach(function (b) {
-        b.classList.toggle('selected', b.getAttribute('data-choice') === value);
-      });
-    }
-
-    // 更新进度条
-    updateProgress();
-
-    // 答完后自动滚到本页下一道未答题
-    if (isNewAnswer) {
-      var pg = PAGES[currentPage];
-      var currentPos = pg.questions.indexOf(qIdx);
-      for (var i = currentPos + 1; i < pg.questions.length; i++) {
-        var nextQIdx = pg.questions[i];
-        if (selections[nextQIdx] === undefined) {
-          setTimeout(function () {
-            scrollToQuestion(nextQIdx);
-          }, 300);
-          return;
-        }
-      }
-    }
-  }
-
-  // ── 更新进度条（题目级）──
-  function updateProgress() {
-    var answered = Object.keys(selections).length;
-    progressFill.style.width = (answered / TOTAL_QUESTIONS * 100) + '%';
-    pageNum.textContent = answered + ' / ' + TOTAL_QUESTIONS;
-  }
-
-  // ── 下一页 / 查看结果 ──
-  function handleNext() {
-    var pg = PAGES[currentPage];
-    var unanswered = [];
-
-    pg.questions.forEach(function (qIdx) {
-      if (selections[qIdx] === undefined) {
-        unanswered.push(qIdx);
-      }
-    });
-
-    if (unanswered.length > 0) {
-      showToast('本页题目还没有答完哦');
-      scrollToQuestion(unanswered[0]);
-      return;
-    }
-
-    // 全部回答完
-    if (currentPage < PAGES.length - 1) {
-      renderPage(currentPage + 1);
-    } else {
-      showResult();
-    }
-  }
-
-  // ── 滚动到指定题目 ──
-  function scrollToQuestion(qIdx) {
-    var card = document.getElementById('qcard-' + qIdx);
-    if (!card) return;
-
-    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-    // 高亮闪烁
-    card.classList.add('highlight');
-    setTimeout(function () {
-      card.classList.remove('highlight');
-    }, 1500);
-  }
-
-  // ── Toast ──
-  var toastTimer = null;
-  function showToast(msg) {
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () {
-      toastEl.classList.remove('show');
-    }, 2000);
-  }
-
-  // ── 算分 ──
-  function calcScores() {
-    var scores = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
-
-    for (var qIdx in selections) {
-      var idx = parseInt(qIdx);
-      var q = QUESTIONS[idx];
-      var sel = selections[idx];
-
-      if (q.dimension === 'cross') {
-        // 交叉题：sel 是 optIndex
-        var vals = q.options[sel].values;
-        for (var dim in vals) {
-          scores[vals[dim]]++;
-        }
-      } else {
-        // 常规题：sel 是 'A' 或 'B'
-        var chosen = (sel === 'A') ? q.optionA : q.optionB;
-        scores[chosen.value]++;
-      }
-    }
-    return scores;
-  }
-
-  function calcType(scores) {
-    var type = '';
-    type += scores.E >= scores.I ? 'E' : 'I';
-    type += scores.S >= scores.N ? 'S' : 'N';
-    type += scores.T >= scores.F ? 'T' : 'F';
-    type += scores.J >= scores.P ? 'J' : 'P';
-    return type;
-  }
-
-  // ── 维度中文标签 ──
-  var DIM_LABELS = {
-    E: '外向', I: '内向',
-    S: '实感', N: '直觉',
-    T: '理性', F: '情感',
-    J: '计划', P: '随性'
-  };
-
-  // ── 显示结果 ──
+  // ── 显示结果页 ──
   function showResult() {
-    var scores = calcScores();
-    var type = calcType(scores);
-    var r = RESULTS[type];
+    var data = Algorithm.run(selections);
+    var r = data.result;
 
     pageQuiz.classList.remove('active');
     pageResult.classList.add('active');
 
-    // 英雄区
+    // 确保结果页从顶部开始
+    window.scrollTo(0, 0);
+    pageResult.scrollTop = 0;
+
+    // 英雄区背景色
     var hero = document.getElementById('result-hero');
-    hero.style.background = r.color;
+    hero.style.background = 'linear-gradient(135deg, ' + r.color + ', ' + adjustColor(r.color, -30) + ')';
+
+    // 用户信息（兜底）
+    var nick = userInfo.nickname || '球迷';
+    var avatar = userInfo.avatar || '⚽';
+    document.getElementById('result-avatar').innerHTML = '<span style="font-size:24px;line-height:40px">' + avatar + '</span>';
+    document.getElementById('result-nickname').textContent = nick;
+    document.getElementById('result-ballage').textContent = userInfo.ballAge ? '球龄：' + userInfo.ballAge : '';
+
+    // 人格信息
+    document.getElementById('result-code').textContent = r.code;
     document.getElementById('result-name').textContent = r.name;
-    document.getElementById('result-type').textContent = type;
     document.getElementById('result-star').textContent = '代表球星：' + r.star;
     document.getElementById('result-tagline').textContent = '「' + r.tagline + '」';
 
-    // 维度条（懂球帝评分风格）
-    var pairs = [
-      { a: 'E', b: 'I' },
-      { a: 'S', b: 'N' },
-      { a: 'T', b: 'F' },
-      { a: 'J', b: 'P' }
-    ];
-
-    var barsHTML = '';
-    pairs.forEach(function (p) {
-      var total = scores[p.a] + scores[p.b];
-      var pctA = total > 0 ? Math.round(scores[p.a] / total * 100) : 50;
-      var pctB = 100 - pctA;
-      // 避免整数50，微调
-      if (pctA === 50) { pctA = 51; pctB = 49; }
-      var leftWins = pctA >= pctB;
-      var winPct = leftWins ? pctA : pctB;
-
-      barsHTML +=
-        '<div class="dim-row">' +
-          '<span class="dim-label-left' + (leftWins ? ' active' : '') + '">' + DIM_LABELS[p.a] + '</span>' +
-          '<div class="dim-bar-track">' +
-            '<div class="dim-bar-left" style="width:' + pctA + '%;background:' + r.color + '"></div>' +
-            '<div class="dim-bar-right"></div>' +
-          '</div>' +
-          '<span class="dim-label-right' + (!leftWins ? ' active' : '') + '">' + DIM_LABELS[p.b] + '</span>' +
-          '<span class="dim-pct">' + winPct + '%</span>' +
-        '</div>';
-    });
-    document.getElementById('dimension-bars').innerHTML = barsHTML;
+    // 5大模型得分条
+    renderModelBars(data.modelScores);
 
     // 免费摘要
-    document.getElementById('result-summary').textContent = r.tagline;
-    document.getElementById('result-stat').textContent = '全站 ' + (Math.random() * 8 + 4).toFixed(1) + '% 的球迷和你同类型';
+    document.getElementById('result-summary').textContent = r.description;
+    document.getElementById('result-stat').textContent = '匹配度 ' + data.similarity + '% · 相似人格 Top' + data.topMatches.length;
 
-    // 完整解析（露出一半）
-    document.getElementById('full-result-text').textContent = r.description;
-
-    // 付费按钮
-    document.getElementById('btn-unlock-pay').onclick = unlockFull;
-    document.getElementById('btn-unlock-video').onclick = unlockFull;
-
-    // 分享按钮
-    document.getElementById('btn-share').onclick = function () {
-      generateShareCard(type, r, scores, pairs);
-    };
-
-    // 关闭弹窗
-    document.getElementById('btn-close-modal').onclick = closeShareModal;
-    document.getElementById('share-modal').onclick = function (e) {
-      if (e.target === this) closeShareModal();
-    };
-
-    // 保存图片
-    document.getElementById('btn-save-card').onclick = saveShareCard;
-
-    // 重测
-    document.getElementById('btn-retry').onclick = function () {
-      location.reload();
-    };
+    // 付费区
+    renderFullResult(data);
   }
+
+  // ── 5大模型得分条 ──
+  function renderModelBars(modelScores) {
+    var wrap = document.getElementById('model-bars');
+    wrap.innerHTML = '';
+    PAGE_KEYS.forEach(function (k) {
+      var m = MODELS[k];
+      var pct = modelScores[k].pct;
+      var row = document.createElement('div');
+      row.className = 'dim-row';
+      row.innerHTML =
+        '<div class="dim-label-left' + (pct >= 50 ? ' active' : '') + '">' + m.label + '</div>' +
+        '<div class="dim-bar-track"><div class="dim-bar-left" style="width:' + pct + '%;background:' + getModelColor(k) + '"></div><div class="dim-bar-right"></div></div>' +
+        '<div class="dim-pct">' + pct + '%</div>';
+      wrap.appendChild(row);
+    });
+  }
+
+  function getModelColor(key) {
+    var colors = { S: '#30B544', E: '#E53935', A: '#1E88E5', D: '#FB8C00', C: '#8E24AA' };
+    return colors[key] || '#30B544';
+  }
+
+  // ── 付费区：15维详细解读 ──
+  function renderFullResult(data) {
+    var wrap = document.getElementById('full-result-text');
+    var html = '';
+    DIM_ORDER.forEach(function (d, i) {
+      var dim = DIMENSIONS[d];
+      var level = data.userVector[i];
+      var levelText = level === 1 ? dim.low : (level === 3 ? dim.high : '中等');
+      html += '<div class="full-dim-item">';
+      html += '<span class="full-dim-name">' + dim.name + '</span>';
+      html += '<span class="full-dim-level">' + levelText + '</span>';
+      html += '</div>';
+    });
+    wrap.innerHTML = html;
+  }
+
+  // ── 付费墙 ──
+  var btnPay = document.getElementById('btn-unlock-pay');
+  var btnVideo = document.getElementById('btn-unlock-video');
+  var btnRetry = document.getElementById('btn-retry');
+
+  btnPay.addEventListener('click', function () { unlockFull(); });
+  btnVideo.addEventListener('click', function () { unlockFull(); });
 
   function unlockFull() {
     document.getElementById('paywall-wrap').classList.add('unlocked');
+    btnRetry.style.display = 'block';
   }
 
+  // ── 重测 ──
+  btnRetry.addEventListener('click', function () {
+    selections = {};
+    currentPage = 0;
+    userInfo = { nickname: '', avatar: '⚽', ballAge: '' };
+    pageResult.classList.remove('active');
+    pageQuiz.classList.add('active');
+    document.getElementById('paywall-wrap').classList.remove('unlocked');
+    btnRetry.style.display = 'none';
+    renderPage(0);
+  });
+
   // ── 分享卡片 ──
-  function generateShareCard(type, r, scores, pairs) {
+  document.getElementById('btn-share').addEventListener('click', function () {
+    generateShareCard();
+  });
+
+  function generateShareCard() {
     var canvas = document.getElementById('share-canvas');
     var ctx = canvas.getContext('2d');
-    var w = 600, h = 800;
-    canvas.width = w;
-    canvas.height = h;
+    var W = 640, H = 900;
+    canvas.width = W;
+    canvas.height = H;
+
+    var data = Algorithm.run(selections);
+    var r = data.result;
+    var nick = userInfo.nickname || '球迷';
+    var avatar = userInfo.avatar || '⚽';
 
     // 背景
     ctx.fillStyle = r.color;
-    ctx.fillRect(0, 0, w, h * 0.45);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, h * 0.45, w, h * 0.55);
+    ctx.fillRect(0, 0, W, H);
+    var grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
 
-    // 头像占位圆
-    ctx.beginPath();
-    ctx.arc(w / 2, 120, 40, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // 文字 - 英雄区
-    ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
+
+    // 标题
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '24px -apple-system, PingFang SC, sans-serif';
+    ctx.fillText('球迷人格测试', W / 2, 60);
+
+    // 头像
+    ctx.font = '80px serif';
+    ctx.fillText(avatar, W / 2, 180);
+
+    // 昵称
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 28px -apple-system, PingFang SC, sans-serif';
+    ctx.fillText(nick, W / 2, 240);
+
+    // 球龄
+    if (userInfo.ballAge) {
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = '20px -apple-system, PingFang SC, sans-serif';
+      ctx.fillText('球龄：' + userInfo.ballAge, W / 2, 275);
+    }
+
+    // 梗字母
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 96px -apple-system, PingFang SC, sans-serif';
+    ctx.fillText(r.code, W / 2, 420);
+
+    // 人格名
     ctx.font = 'bold 32px -apple-system, PingFang SC, sans-serif';
-    ctx.fillText(r.name, w / 2, 200);
-    ctx.font = '16px -apple-system, PingFang SC, sans-serif';
-    ctx.globalAlpha = 0.7;
-    ctx.fillText(type, w / 2, 228);
-    ctx.globalAlpha = 0.85;
-    ctx.fillText('代表球星：' + r.star, w / 2, 254);
-    ctx.globalAlpha = 0.95;
-    ctx.font = '600 18px -apple-system, PingFang SC, sans-serif';
-    ctx.fillText('「' + r.tagline + '」', w / 2, 290);
-    ctx.globalAlpha = 1;
+    ctx.fillText(r.name, W / 2, 475);
 
-    // 维度条
-    var barY = h * 0.45 + 40;
-    ctx.font = '600 14px -apple-system, PingFang SC, sans-serif';
-    var DIM = { E:'外向',I:'内向',S:'实感',N:'直觉',T:'理性',F:'情感',J:'计划',P:'随性' };
+    // 代表球星
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.font = '22px -apple-system, PingFang SC, sans-serif';
+    ctx.fillText('代表球星：' + r.star, W / 2, 520);
 
-    pairs.forEach(function (p, i) {
-      var total = scores[p.a] + scores[p.b];
-      var pctA = total > 0 ? Math.round(scores[p.a] / total * 100) : 50;
-      if (pctA === 50) pctA = 51;
-      var y = barY + i * 50;
+    // tagline
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = '24px -apple-system, PingFang SC, sans-serif';
+    ctx.fillText('「' + r.tagline + '」', W / 2, 580);
 
-      // 左标签
-      ctx.textAlign = 'right';
-      ctx.fillStyle = pctA >= 50 ? r.color : '#bbb';
-      ctx.fillText(DIM[p.a], 70, y + 4);
-
-      // 条
-      var barX = 82, barW = 380, barH = 10;
-      ctx.fillStyle = '#EBEDF0';
-      ctx.beginPath();
-      ctx.roundRect(barX, y - 5, barW, barH, 5);
-      ctx.fill();
-      ctx.fillStyle = r.color;
-      ctx.beginPath();
-      ctx.roundRect(barX, y - 5, barW * pctA / 100, barH, 5);
-      ctx.fill();
-
-      // 右标签
+    // 5维简图
+    var barY = 640;
+    PAGE_KEYS.forEach(function (k, i) {
+      var pct = data.modelScores[k].pct;
+      var x = 80, y = barY + i * 40;
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = '18px -apple-system, PingFang SC, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillStyle = pctA < 50 ? r.color : '#bbb';
-      ctx.fillText(DIM[p.b], barX + barW + 10, y + 4);
-
-      // 百分比
+      ctx.fillText(MODELS[k].label, x, y + 4);
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      roundRect(ctx, x + 70, y - 10, 400, 16, 8); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      roundRect(ctx, x + 70, y - 10, 400 * pct / 100, 16, 8); ctx.fill();
       ctx.textAlign = 'right';
-      ctx.fillStyle = r.color;
-      ctx.font = 'bold 14px -apple-system, PingFang SC, sans-serif';
-      ctx.fillText(Math.max(pctA, 100 - pctA) + '%', w - 30, y + 4);
-      ctx.font = '600 14px -apple-system, PingFang SC, sans-serif';
+      ctx.fillText(pct + '%', W - 60, y + 4);
     });
 
-    // 底部品牌
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#bbb';
-    ctx.font = '13px -apple-system, PingFang SC, sans-serif';
-    ctx.fillText('懂球帝 · 球迷人格测试', w / 2, h - 30);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '16px -apple-system, PingFang SC, sans-serif';
+    ctx.fillText('匹配度 ' + data.similarity + '%', W / 2, H - 40);
 
-    // 显示弹窗
     document.getElementById('share-modal').classList.add('show');
   }
 
-  function closeShareModal() {
-    document.getElementById('share-modal').classList.remove('show');
+  function roundRect(ctx, x, y, w, h, r) {
+    if (w < 0) w = 0;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
   }
 
-  function saveShareCard() {
+  // 保存图片
+  document.getElementById('btn-save-card').addEventListener('click', function () {
     var canvas = document.getElementById('share-canvas');
     var link = document.createElement('a');
-    link.download = '我的球迷人格.png';
+    link.download = '球迷人格_' + (userInfo.nickname || '球迷') + '.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
+  });
+
+  // 关闭弹窗
+  document.getElementById('btn-close-modal').addEventListener('click', function () {
+    document.getElementById('share-modal').classList.remove('show');
+  });
+
+  // ── 工具函数 ──
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    setTimeout(function () { toastEl.classList.remove('show'); }, 2000);
   }
 
-  // ── 工具 ──
   function escapeHtml(str) {
     var div = document.createElement('div');
-    div.textContent = str;
+    div.appendChild(document.createTextNode(str));
     return div.innerHTML;
+  }
+
+  function adjustColor(hex, amount) {
+    var num = parseInt(hex.replace('#', ''), 16);
+    var r = Math.min(255, Math.max(0, (num >> 16) + amount));
+    var g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+    var b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+    return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
   }
 
 })();
