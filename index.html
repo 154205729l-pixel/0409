@@ -8,34 +8,19 @@
 </head>
 <body>
 
-  <!-- ====== 开始页 ====== -->
-  <div id="page-start" class="page active">
-    <span class="start-badge">懂球帝</span>
-    <h1 class="start-title">球迷MBTI<br>速来测</h1>
-    <p class="start-subtitle">22道足球灵魂拷问<br>找到你的球迷人格 & 代表球星</p>
-    <div class="start-stats">
-      <div class="stat">
-        <div class="stat-num">26,299</div>
-        <div class="stat-label">人已完成测试</div>
-      </div>
-    </div>
-    <button id="btn-start" class="btn-start">开始测试</button>
-    <p class="start-footer">做完整套题目约需3分钟，结果仅供参考</p>
-  </div>
-
-  <!-- ====== 答题页 ====== -->
-  <div id="page-quiz" class="page">
+  <!-- ====== 答题页（直接进入） ====== -->
+  <div id="page-quiz" class="page active">
     <div class="quiz-top-fixed">
       <div class="quiz-header">
-        <span id="quiz-dim-label" class="quiz-dim-label"></span>
-        <span id="quiz-page-num" class="quiz-page-num"></span>
+        <span class="quiz-dim-label">球迷人格测试</span>
+        <span id="quiz-progress-text" class="quiz-page-num">0 / 31</span>
       </div>
       <div class="progress-bar-bg">
         <div id="progress-fill" class="progress-bar-fill" style="width: 0%"></div>
       </div>
     </div>
     <div id="quiz-container" class="quiz-container"></div>
-    <div id="quiz-footer" class="quiz-footer">
+    <div class="quiz-footer">
       <div class="quiz-footer-btns">
         <button id="btn-prev" class="btn-prev" style="display:none">上一页</button>
         <button id="btn-next" class="btn-next">下一页</button>
@@ -52,20 +37,24 @@
     <!-- ① 英雄区 -->
     <div id="result-hero" class="result-hero">
       <div class="hero-badge">你的球迷人格</div>
-      <div class="hero-avatar">
-        <img src="img/avatar-default.png" alt="头像" onerror="this.style.display='none'">
-      </div>
+      <div id="result-code" class="hero-code"></div>
       <div id="result-name" class="hero-name"></div>
-      <div id="result-type" class="hero-type"></div>
-      <div id="result-star" class="hero-star"></div>
       <p id="result-tagline" class="hero-tagline"></p>
+      <div class="hero-user-row">
+        <div class="hero-avatar" id="result-avatar"></div>
+        <div class="hero-user-info">
+          <div id="result-nickname" class="hero-nickname"></div>
+          <div id="result-ballage" class="hero-ballage"></div>
+        </div>
+      </div>
+      <div id="result-star" class="hero-star-badge"></div>
       <button id="btn-share" class="btn-share">生成卡片分享</button>
     </div>
 
-    <!-- ② 维度条区 -->
+    <!-- ② 5大模型得分 -->
     <div class="result-section">
       <div class="section-title">你的球迷维度</div>
-      <div id="dimension-bars" class="dimension-bars"></div>
+      <div id="model-bars" class="dimension-bars"></div>
     </div>
 
     <!-- ③ 免费摘要 -->
@@ -89,8 +78,8 @@
       </div>
     </div>
 
-    <!-- ⑤ 底部 -->
-    <button id="btn-retry" class="btn-retry">再测一次</button>
+    <!-- ⑤ 底部（付费墙后） -->
+    <button id="btn-retry" class="btn-retry" style="display:none">再测一次</button>
 
     <!-- ⑥ 分享卡片弹窗 -->
     <div id="share-modal" class="share-modal">
@@ -105,6 +94,7 @@
 
   <script src="js/questions.js"></script>
   <script src="js/results.js"></script>
+  <script src="js/algorithm.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
