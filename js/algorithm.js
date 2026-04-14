@@ -24,14 +24,34 @@ var Algorithm = (function () {
     return raw;
   }
 
+  // ── 统计每个子维度的题数 ──
+  function countDimQuestions() {
+    var count = {};
+    DIM_ORDER.forEach(function (d) { count[d] = 0; });
+    for (var i = 0; i < QUESTIONS.length; i++) {
+      var q = QUESTIONS[i];
+      if (q.dimension === 'ballAge') continue;
+      count[q.dimension]++;
+    }
+    return count;
+  }
+
   // ── 第二步：归档 L/M/H ──
   function archiveScores(raw) {
+    var dimCount = countDimQuestions();
     var vec = [];
     DIM_ORDER.forEach(function (d) {
       var s = raw[d];
-      if (s <= 3) vec.push(1);      // L
-      else if (s === 4) vec.push(2); // M
-      else vec.push(3);              // H
+      var n = dimCount[d];
+      if (n === 1) {
+        // 1题：1→L, 2→M, 3→H
+        vec.push(s);
+      } else {
+        // 2题：2-3→L, 4→M, 5-6→H
+        if (s <= 3) vec.push(1);
+        else if (s === 4) vec.push(2);
+        else vec.push(3);
+      }
     });
     return vec;
   }
@@ -86,6 +106,7 @@ var Algorithm = (function () {
 
   // ── 5 大模型得分（用于结果页可视化）──
   function calcModelScores(raw) {
+    var dimCount = countDimQuestions();
     var models = {};
     for (var key in MODELS) {
       models[key] = { total: 0, max: 0 };
@@ -93,7 +114,7 @@ var Algorithm = (function () {
     DIM_ORDER.forEach(function (d) {
       var model = DIMENSIONS[d].model;
       models[model].total += raw[d];
-      models[model].max += 6; // 每维最高6分
+      models[model].max += dimCount[d] * 3; // 每题最高3分
     });
     // 转成百分比
     for (var k in models) {
