@@ -1,11 +1,11 @@
 /**
  * 球迷人格测试 2.0 — 主逻辑
- * 流程：答题(5个维度页, 共31题) → 结果页
+ * 流程：答题(5个维度页, 共19题) → 结果页
  */
 
 (function () {
 
-  var TOTAL = QUESTIONS.length; // 31
+  var TOTAL = QUESTIONS.length; // 19
   var PAGE_KEYS = ['S', 'E', 'A', 'D', 'C'];
   var currentPage = 0;
   var selections = {}; // { questionIndex: selectedOptionIndex }
@@ -133,10 +133,6 @@
         html += '<input type="text" class="ballage-input option-btn" placeholder="随便写，比如：三年老球迷" maxlength="' + (q.maxLength || 20) + '" value="' + escapeHtml(val) + '">';
         html += '</div>';
       } else {
-        html += '<div class="q-divider">';
-        html += '  <div class="q-divider-bar"></div>';
-        html += '  <div class="q-divider-text">你会选择：</div>';
-        html += '</div>';
         html += '<div class="q-options">';
         q.options.forEach(function (opt, optIdx) {
           var sel = (selections[idx] === optIdx) ? ' selected' : '';
@@ -197,29 +193,39 @@
     window.scrollTo(0, 0);
     pageResult.scrollTop = 0;
 
-    // 英雄区背景色
+    // 英雄区背景色（纯色）
     var hero = document.getElementById('result-hero');
-    hero.style.background = 'linear-gradient(135deg, ' + r.color + ', ' + adjustColor(r.color, -30) + ')';
+    hero.style.background = r.color;
+
+    // stat-card + paywall 装饰线 + 按钮颜色
+    document.querySelector('.stat-card').style.background = r.color;
+    document.querySelector('.paywall-wrap').style.setProperty('--pw-accent', r.color);
+    document.querySelector('.btn-pay').style.background = r.color;
+    document.querySelector('.btn-video').style.color = r.color;
 
     // 用户信息（兜底）
     var nick = userInfo.nickname || '球迷';
     var avatar = userInfo.avatar || '⚽';
     document.getElementById('result-avatar').innerHTML = '<span style="font-size:24px;line-height:40px">' + avatar + '</span>';
     document.getElementById('result-nickname').textContent = nick;
-    document.getElementById('result-ballage').textContent = userInfo.ballAge ? '球龄：' + userInfo.ballAge : '';
+    document.getElementById('result-ballage').textContent = userInfo.ballAge ? '活跃了' + userInfo.ballAge + '的珍贵账号' : '';
 
     // 人格信息
     document.getElementById('result-code').textContent = r.code;
-    document.getElementById('result-name').textContent = r.name;
-    document.getElementById('result-star').textContent = '代表球星：' + r.star;
-    document.getElementById('result-tagline').textContent = '「' + r.tagline + '」';
+    document.getElementById('result-name').textContent = '#' + r.name;
+    // 球星（右侧卡片，不带前缀）
+    document.getElementById('result-star').textContent = r.star;
+    document.getElementById('result-section-tagline').textContent = '\u201C' + r.tagline + '\u201D';
 
     // 5大模型得分条
     renderModelBars(data.modelScores);
 
     // 免费摘要
     document.getElementById('result-summary').textContent = r.description;
-    document.getElementById('result-stat').textContent = '匹配度 ' + data.similarity + '% · 相似人格 Top' + data.topMatches.length;
+
+    // 匹配度统计卡
+    document.getElementById('result-stat-value').textContent = data.similarity + '%';
+    document.getElementById('result-stat-tail').textContent = '相似人格 Top' + data.topMatches.length;
 
     // 付费区
     renderFullResult(data);
@@ -232,36 +238,53 @@
     PAGE_KEYS.forEach(function (k) {
       var m = MODELS[k];
       var pct = modelScores[k].pct;
-      var row = document.createElement('div');
-      row.className = 'dim-row';
-      row.innerHTML =
-        '<div class="dim-label-left' + (pct >= 50 ? ' active' : '') + '">' + m.label + '</div>' +
-        '<div class="dim-bar-track"><div class="dim-bar-left" style="width:' + pct + '%;background:' + getModelColor(k) + '"></div><div class="dim-bar-right"></div></div>' +
-        '<div class="dim-pct">' + pct + '%</div>';
-      wrap.appendChild(row);
+      var bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.innerHTML =
+        '<div class="label">' + m.name + '</div>' +
+        '<div class="track"><div class="fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="pct">' + pct + '%</div>';
+      wrap.appendChild(bar);
     });
   }
 
-  function getModelColor(key) {
-    var colors = { S: '#30B544', E: '#E53935', A: '#1E88E5', D: '#FB8C00', C: '#8E24AA' };
-    return colors[key] || '#30B544';
+  // ── 付费区：按维度 tab 显示 ──
+  var _currentData = null;
+
+  function renderFullResult(data) {
+    _currentData = data;
+    renderTab('S');
+    // 重置 tab 选中
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-tab') === 'S');
+    });
   }
 
-  // ── 付费区：15维详细解读 ──
-  function renderFullResult(data) {
+  function renderTab(dimKey) {
+    var data = _currentData;
+    var r = data.result;
     var wrap = document.getElementById('full-result-text');
-    var html = '';
-    DIM_ORDER.forEach(function (d, i) {
+    var m = MODELS[dimKey];
+    var dims = DIM_ORDER.filter(function (d) { return DIMENSIONS[d].model === dimKey; });
+    var html = '<p style="font-weight:700;margin:0 0 4px">' + m.name + '</p>';
+    dims.forEach(function (d) {
       var dim = DIMENSIONS[d];
-      var level = data.userVector[i];
-      var levelText = level === 1 ? dim.low : (level === 3 ? dim.high : '中等');
-      html += '<div class="full-dim-item">';
-      html += '<span class="full-dim-name">' + dim.name + '</span>';
-      html += '<span class="full-dim-level">' + levelText + '</span>';
-      html += '</div>';
+      var idx = DIM_ORDER.indexOf(d);
+      var level = data.userVector[idx];
+      var text = level === 1 ? dim.low : (level === 3 ? dim.high : '中等');
+      html += '<p style="margin:0;font-size:14px;line-height:1.8;color:#374151">' + dim.name + '：' + text + ' — 待补充详细解析文案</p>';
     });
     wrap.innerHTML = html;
   }
+
+  // tab 切换
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      renderTab(btn.getAttribute('data-tab'));
+    });
+  });
 
   // ── 付费墙 ──
   var btnPay = document.getElementById('btn-unlock-pay');
